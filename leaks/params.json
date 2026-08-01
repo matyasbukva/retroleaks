@@ -1,0 +1,278 @@
+[
+ {
+  "index": 0,
+  "file": "L0.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 1,
+  "file": "L1.jpg",
+  "resize": "FILL",
+  "align": "MC"
+ },
+ {
+  "index": 2,
+  "file": "L2.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 3,
+  "file": "L3.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 4,
+  "file": "L4.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 5,
+  "file": "L5.jpg",
+  "resize": "FILL",
+  "align": "BL"
+ },
+ {
+  "index": 6,
+  "file": "L6.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 7,
+  "file": "L7.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 8,
+  "file": "L8.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 9,
+  "file": "L9.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 10,
+  "file": "L10.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 11,
+  "file": "L11.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 12,
+  "file": "L12.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 13,
+  "file": "L13.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 14,
+  "file": "L14.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 15,
+  "file": "L15.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 16,
+  "file": "L16.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 17,
+  "file": "L17.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 18,
+  "file": "L18.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 19,
+  "file": "L19.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 20,
+  "file": "L20.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 21,
+  "file": "L21.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 22,
+  "file": "L22.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 23,
+  "file": "L23.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 24,
+  "file": "L24.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 25,
+  "file": "L25.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 26,
+  "file": "L26.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 27,
+  "file": "L27.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 28,
+  "file": "L28.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 29,
+  "file": "L29.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 30,
+  "file": "L30.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 31,
+  "file": "L31.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 32,
+  "file": "L32.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 33,
+  "file": "L33.jpg",
+  "resize": "FILL",
+  "align": "TR"
+ },
+ {
+  "index": 34,
+  "file": "L34.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 35,
+  "file": "L35.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 36,
+  "file": "L36.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 37,
+  "file": "L37.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 38,
+  "file": "L38.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 39,
+  "file": "L39.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 40,
+  "file": "L40.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 41,
+  "file": "L41.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 42,
+  "file": "L42.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 43,
+  "file": "L43.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 44,
+  "file": "L44.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ },
+ {
+  "index": 45,
+  "file": "L45.jpg",
+  "resize": "STRETCH",
+  "align": "MC"
+ }
+]

@@ -13,6 +13,61 @@ const JPEG_QUALITY = 0.92;
 const MAX_PIXELS = 16e6;          // a Safari vászonkorlátja alatt maradunk
 const MANY_FILES = 40;            // efölött figyelmeztetünk
 
+/* Amit minden böngésző meg tud nyitni. */
+const SAFE_FORMATS = {
+  jpg: 'JPEG', jpeg: 'JPEG', jpe: 'JPEG', png: 'PNG',
+  webp: 'WebP', gif: 'GIF', bmp: 'BMP'
+};
+
+/* Amit csak egyes böngészők: a HEIC iPhone-on megy, Windowson nem;
+   a RAW formátumokat gyakorlatilag egyik böngésző sem nyitja meg. */
+const RISKY_FORMATS = {
+  heic: 'HEIC', heif: 'HEIF', avif: 'AVIF', tif: 'TIFF', tiff: 'TIFF',
+  dng: 'DNG RAW', rw2: 'Panasonic RAW', cr2: 'Canon RAW', cr3: 'Canon RAW',
+  nef: 'Nikon RAW', nrw: 'Nikon RAW', arw: 'Sony RAW', srf: 'Sony RAW',
+  orf: 'Olympus RAW', raf: 'Fujifilm RAW', pef: 'Pentax RAW',
+  srw: 'Samsung RAW', x3f: 'Sigma RAW'
+};
+
+function extensionOf(name) {
+  const match = /\.([a-z0-9]+)$/i.exec(name || '');
+  return match ? match[1].toLowerCase() : '';
+}
+
+function formatLabel(file) {
+  const ext = extensionOf(file.name);
+  if (SAFE_FORMATS[ext]) return SAFE_FORMATS[ext];
+  if (RISKY_FORMATS[ext]) return RISKY_FORMATS[ext];
+  if (file.type) return file.type.replace('image/', '').toUpperCase();
+  return ext ? ext.toUpperCase() : 'ismeretlen';
+}
+
+function looksLikeImage(file) {
+  if (file.type && file.type.startsWith('image/')) return true;
+  // Windowson a HEIC és a RAW gyakran üres MIME-típussal érkezik
+  const ext = extensionOf(file.name);
+  return Boolean(SAFE_FORMATS[ext] || RISKY_FORMATS[ext]);
+}
+
+/** Megnyitható-e ez a fájl EBBEN a böngészőben? */
+function canDecode(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      resolve(value);
+    };
+    const img = new Image();
+    img.onload = () => finish(img.naturalWidth > 0);
+    img.onerror = () => finish(false);
+    img.src = url;
+    setTimeout(() => finish(false), 10000);
+  });
+}
+
 const el = (id) => document.getElementById(id);
 
 const ui = {
@@ -190,7 +245,9 @@ async function drawSource(file, maxSide) {
     await img.decode();
   } catch (error) {
     URL.revokeObjectURL(url);
-    throw new Error('A fájl nem olvasható képként.');
+    throw new Error(
+      'a böngésző nem tudja megnyitni ezt a formátumot — mentsd JPEG-be'
+    );
   }
 
   // A böngésző az EXIF-orientációt már alkalmazta, a naturalWidth/Height
@@ -291,13 +348,26 @@ function applyLeak(canvas, leakImg, roll, intensity) {
   layer.height = 0;
 }
 
+const FILE_PROTOCOL_HELP =
+  'az oldal fájlból (file://) fut, így a böngésző megtiltja a kép exportálását. ' +
+  'Nyisd meg a github.io címről, vagy indíts helyi szervert a mappában: ' +
+  'python -m http.server 8000';
+
 function canvasToBlob(canvas, quality) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error('A JPEG kódolás nem sikerült.'))),
-      'image/jpeg',
-      quality
-    );
+    try {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('a JPEG kódolás nem sikerült'))),
+        'image/jpeg',
+        quality
+      );
+    } catch (error) {
+      // Beszennyezett vászon: a leak képet a böngésző más eredetűnek látja.
+      // file:// alatt minden helyi fájl külön eredetnek számít.
+      const tainted =
+        (error && error.name === 'SecurityError') || /tainted/i.test(String(error && error.message));
+      reject(new Error(tainted ? FILE_PROTOCOL_HELP : String(error && error.message)));
+    }
   });
 }
 
@@ -408,7 +478,7 @@ async function runBatch() {
       });
     } catch (error) {
       failed++;
-      showProblem(`${file.name}: ${error.message}`);
+      showProblem(`${file.name} (${formatLabel(file)}): ${error.message}`);
       console.warn(file.name, error);
     }
 
@@ -581,35 +651,73 @@ async function shareOne(index) {
 
 /* ─────────── Kiválasztás ─────────── */
 
-function onPick(event) {
-  const picked = Array.from(event.target.files || []).filter((f) =>
-    f.type.startsWith('image/')
+/** Formátumonként egy fájlt letesztel, és kiszűri, amit ez a böngésző nem tud. */
+async function screenFormats(files) {
+  const suspect = Array.from(
+    new Set(files.map((f) => extensionOf(f.name)).filter((e) => !SAFE_FORMATS[e]))
   );
+
+  const rejected = new Set();
+  for (const ext of suspect) {
+    const sample = files.find((f) => extensionOf(f.name) === ext);
+    // eslint-disable-next-line no-await-in-loop
+    if (!(await canDecode(sample))) rejected.add(ext);
+  }
+
+  const usable = [];
+  const blocked = [];
+  files.forEach((f) => (rejected.has(extensionOf(f.name)) ? blocked : usable).push(f));
+  return { usable, blocked };
+}
+
+async function onPick(event) {
+  const picked = Array.from(event.target.files || []).filter(looksLikeImage);
 
   clearResults();
   clearProblem();
-  state.files = picked;
   state.previewRoll = null;
+  state.files = [];
 
-  ui.counterNum.textContent = String(picked.length).padStart(2, '0');
-  ui.runBtn.disabled = picked.length === 0;
-  ui.previewPanel.hidden = picked.length === 0;
   ui.progress.hidden = true;
+  ui.previewPanel.hidden = true;
+  ui.runBtn.disabled = true;
+  ui.sourceWarn.hidden = true;
+  ui.counterNum.textContent = String(picked.length).padStart(2, '0');
 
   if (!picked.length) {
     ui.sourceMeta.textContent = 'Még nincs kiválasztott kép.';
-    ui.sourceWarn.hidden = true;
     return;
   }
 
-  const mb = picked.reduce((sum, f) => sum + f.size, 0) / 1e6;
-  ui.sourceMeta.textContent = `${picked.length} kép · ${mb.toFixed(1)} MB`;
+  ui.sourceMeta.textContent = 'Fájlok ellenőrzése…';
+  const { usable, blocked } = await screenFormats(picked);
 
-  if (picked.length > MANY_FILES) {
+  if (blocked.length) {
+    const formats = Array.from(new Set(blocked.map(formatLabel))).join(', ');
+    showProblem(
+      `${blocked.length} fájlt nem tud megnyitni ez a böngésző (${formats}). ` +
+      'A Chrome és az Edge Windowson nem kezeli a HEIC-et és a RAW formátumokat. ' +
+      'iPhone-on Safariban a HEIC működik; egyébként mentsd JPEG-be a képeket.'
+    );
+  }
+
+  state.files = usable;
+  ui.counterNum.textContent = String(usable.length).padStart(2, '0');
+  ui.runBtn.disabled = usable.length === 0;
+  ui.previewPanel.hidden = usable.length === 0;
+
+  if (!usable.length) {
+    ui.sourceMeta.textContent = 'Egyetlen kiválasztott fájl sem használható.';
+    return;
+  }
+
+  const mb = usable.reduce((sum, f) => sum + f.size, 0) / 1e6;
+  const kinds = Array.from(new Set(usable.map(formatLabel))).join(', ');
+  ui.sourceMeta.textContent = `${usable.length} kép · ${mb.toFixed(1)} MB · ${kinds}`;
+
+  if (usable.length > MANY_FILES) {
     ui.sourceWarn.hidden = false;
-    ui.sourceWarn.textContent = `${picked.length} kép egyszerre sok lehet a Safarinak. Ha közben újratölt az oldal, dolgozz ${MANY_FILES} képes adagokban.`;
-  } else {
-    ui.sourceWarn.hidden = true;
+    ui.sourceWarn.textContent = `${usable.length} kép egyszerre sok lehet a Safarinak. Ha közben újratölt az oldal, dolgozz ${MANY_FILES} képes adagokban.`;
   }
 
   renderPreview();
@@ -666,6 +774,12 @@ async function init() {
     ui.sourceMeta.textContent = error.message;
     ui.runBtn.disabled = true;
     return;
+  }
+
+  // A file:// protokollon a feldolgozás elvileg sem tud működni: a beszennyezett
+  // vásznat a böngésző nem engedi exportálni. Ezt rögtön mondjuk meg.
+  if (location.protocol === 'file:') {
+    showProblem('Így nem fog működni: ' + FILE_PROTOCOL_HELP);
   }
 
   // Indulási önellenőrzés: ha a leak képek nincsenek a szerveren, azt itt és

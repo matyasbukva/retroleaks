@@ -34,12 +34,11 @@ git push -u origin main
 
 ## 1/b. Kipróbálás számítógépen
 
-Az `index.html` duplakattintással is megnyílik, és a feldolgozás működik.
-Két dolog viszont nem: a service worker (offline mód) és a Fotókba mentés,
-mert ezekhez HTTPS kell.
+**Duplakattintással NEM működik.** A felület bejön, de a feldolgozás elszáll
+„tainted canvas" hibával: `file://` alatt a böngésző minden helyi fájlt külön
+eredetnek tekint, így a leak ráégetése után a vásznat nem engedi exportálni.
 
-Ha a teljes működést akarod látni a gépeden, indíts egy helyi szervert a
-mappában:
+Indíts helyi szervert a mappában:
 
 ```
 python -m http.server 8000
@@ -101,6 +100,20 @@ A `leaks/params.json` az eredeti app paramétereit tartalmazza: melyik leak
 `STRETCH` (pontosan kitölti a képet, torzulhat) és melyik `FILL` (arányosan
 befedi, a széle levágódik), utóbbinál igazítással együtt. A 46-ból három
 kivétel van: `L1` = FILL/MC, `L5` = FILL/BL, `L33` = FILL/TR.
+
+## 4/b. Támogatott formátumok
+
+Biztosan működik mindenhol: **JPEG, PNG, WebP, GIF, BMP**.
+
+A **HEIC** iPhone-on Safariban gond nélkül megy, mert a rendszer dekódolja.
+Windowson viszont a Chrome és az Edge nem tudja megnyitni — ahogy a **RAW**
+fájlokat sem (`.RW2`, `.DNG`, `.CR3`, `.NEF`, `.ARW` és társaik), és a TIFF-et
+sem.
+
+Az app kiválasztáskor formátumonként letesztel egy fájlt, és ami ebben a
+böngészőben nem nyitható meg, azt kiszűri, megnevezve a formátumot. Tehát a
+Lumix RAW-jaidat előbb JPEG-be kell exportálnod — a light leak amúgy is a
+végső, kidolgozott képre való, nem a nyersanyagra.
 
 ## 5. Korlátok
 

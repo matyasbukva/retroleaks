@@ -33,9 +33,11 @@
 
     <label class="picker" for="picker">
       <span class="picker-label">Képek kiválasztása</span>
-      <span class="picker-hint">a Fotókból vagy a Fájlokból</span>
+      <span class="picker-hint">JPEG · PNG · HEIC</span>
     </label>
-    <input type="file" id="picker" accept="image/*" multiple>
+    <input type="file" id="picker"
+           accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/heic,image/heif"
+           multiple>
 
     <p class="meta" id="sourceMeta">Még nincs kiválasztott kép.</p>
     <p class="warn" id="sourceWarn" hidden></p>

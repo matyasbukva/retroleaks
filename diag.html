@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>RetroLeaks — diagnosztika</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  body {
+    margin: 0; padding: 18px;
+    background: #1c1c1e; color: #e8e6e1;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+  h1 { font-size: 15px; letter-spacing: .18em; text-transform: uppercase; margin: 0 0 4px; }
+  .sub { color: #8e8e95; font-size: 12.5px; margin: 0 0 20px; }
+  button {
+    display: block; width: 100%; padding: 13px; margin: 0 0 10px;
+    border: none; border-radius: 11px; background: #e8e6e1; color: #1a1a1c;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button.alt { background: transparent; border: 1px solid #3a3a40; color: #e8e6e1; }
+  input[type=file] { margin: 0 0 14px; color: #8e8e95; font-size: 13px; }
+  pre {
+    background: #232326; border: 1px solid #3a3a40; border-radius: 11px;
+    padding: 13px; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap; word-break: break-word; margin: 0 0 16px;
+  }
+  .ok { color: #9ecb9e; } .bad { color: #e8a87c; } .note { color: #8e8e95; }
+  img#out { max-width: 100%; border-radius: 9px; display: none; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<h1>Diagnosztika</h1>
+<p class="sub">Ez az oldal nem használ service workert, mindig frissen fut.</p>
+
+<pre id="log">Indulás…</pre>
+
+<button id="clearBtn" class="alt">Gyorsítótár és service worker törlése</button>
+
+<p class="sub">Alább válassz egy képet — végigmegyek a teljes folyamaton lépésről lépésre:</p>
+<input type="file" id="file" accept="image/*">
+<img id="out" alt="Teszt eredménye">
+
+<button id="copyBtn" class="alt">Napló másolása</button>
+
+<script>
+const logEl = document.getElementById('log');
+let lines = [];
+
+function say(text, cls) {
+  lines.push(text);
+  const span = cls ? `<span class="${cls}">${text}</span>` : text;
+  logEl.innerHTML = lines.map((l, i) => (i === lines.length - 1 ? span : l)).join('\n');
+  logEl.innerHTML = lines.join('\n');
+}
+function ok(t)   { lines.push('OK    ' + t); render(); }
+function bad(t)  { lines.push('HIBA  ' + t); render(); }
+function info(t) { lines.push('      ' + t); render(); }
+function head(t) { lines.push('', '── ' + t + ' ' + '─'.repeat(Math.max(0, 34 - t.length))); render(); }
+
+function render() {
+  logEl.innerHTML = lines.map((l) => {
+    if (l.startsWith('OK')) return '<span class="ok">' + l + '</span>';
+    if (l.startsWith('HIBA')) return '<span class="bad">' + l + '</span>';
+    if (l.startsWith('──')) return '<span class="note">' + l + '</span>';
+    return '<span class="note">' + l + '</span>';
+  }).join('\n');
+}
+
+/* ── 1. Környezet ───────────────────────────────── */
+async function checkEnvironment() {
+  head('Környezet');
+  info('cím: ' + location.href);
+  info('biztonságos kontextus: ' + (window.isSecureContext ? 'igen' : 'NEM'));
+  info('böngésző: ' + navigator.userAgent.slice(0, 110));
+  info('kezdőképernyőről indítva: ' + (navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'igen' : 'nem'));
+
+  const canShareFiles = (() => {
+    try {
+      const probe = new File([new Blob(['x'])], 'a.jpg', { type: 'image/jpeg' });
+      return Boolean(navigator.canShare && navigator.canShare({ files: [probe] }));
+    } catch (e) { return false; }
+  })();
+  info('tud fájlt megosztani: ' + (canShareFiles ? 'igen' : 'nem — Fotókba mentés csak iPhone Safariban'));
+}
+
+/* ── 2. Service worker és gyorsítótár ───────────── */
+async function checkServiceWorker() {
+  head('Service worker');
+  if (!('serviceWorker' in navigator)) { info('nem támogatott'); return; }
+
+  const regs = await navigator.serviceWorker.getRegistrations();
+  info('regisztrációk száma: ' + regs.length);
+  regs.forEach((r) => info('  hatókör: ' + r.scope));
+
+  const names = await caches.keys();
+  info('gyorsítótárak: ' + (names.length ? names.join(', ') : 'nincs'));
+
+  for (const name of names) {
+    const cache = await caches.open(name);
+    const keys = await cache.keys();
+    info('  ' + name + ': ' + keys.length + ' bejegyzés');
+    const hasLeak = keys.some((k) => k.url.includes('/leaks/L'));
+    if (name.includes('v1')) {
+      bad('  RÉGI (v1) gyorsítótár él — ez régi kódot szolgál ki. Töröld a gombbal.');
+    }
+    info('  leak kép a gyorsítótárban: ' + (hasLeak ? 'van' : 'nincs'));
+  }
+}
+
+/* ── 3. Fájlok elérhetősége ─────────────────────── */
+async function checkFiles() {
+  head('Fájlok a szerveren');
+  const targets = ['app.js', 'index.html', 'leaks/params.json', 'leaks/L0.jpg', 'leaks/L45.jpg', 'icons/icon-192.png'];
+
+  for (const path of targets) {
+    try {
+      // cache: 'reload' megkerüli a HTTP gyorsítótárat, de a service workert nem
+      const response = await fetch(path, { cache: 'reload' });
+      const size = (await response.blob()).size;
+      if (response.ok) ok(path + ' — ' + response.status + ', ' + size + ' bájt');
+      else bad(path + ' — ' + response.status);
+    } catch (error) {
+      bad(path + ' — ' + error.message);
+    }
+  }
+
+  head('Melyik app.js fut valójában?');
+  try {
+    const text = await (await fetch('app.js', { cache: 'reload' })).text();
+    info('méret: ' + text.length + ' karakter');
+    info('beépített leak lista: ' + (text.includes('BUILTIN_LEAKS') ? 'VAN (új)' : 'nincs (RÉGI)'));
+    info('indulási önellenőrzés: ' + (text.includes('Indulási önellenőrzés') ? 'VAN (új)' : 'nincs (RÉGI)'));
+  } catch (error) {
+    bad('app.js nem olvasható: ' + error.message);
+  }
+}
+
+/* ── 4. Vászon képességek ───────────────────────── */
+async function checkCanvas() {
+  head('Vászon');
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800; canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { bad('nincs 2d kontextus'); return; }
+
+    ctx.fillStyle = '#404040'; ctx.fillRect(0, 0, 800, 600);
+    ctx.globalCompositeOperation = 'screen';
+    const supported = ctx.globalCompositeOperation === 'screen';
+    ctx.globalCompositeOperation = 'source-over';
+    info('screen blend: ' + (supported ? 'támogatott' : 'NEM támogatott'));
+
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.9));
+    if (blob && blob.size > 0) ok('toBlob JPEG működik — ' + blob.size + ' bájt');
+    else bad('toBlob üres vagy null értéket adott');
+  } catch (error) {
+    bad('vászon hiba: ' + error.message);
+  }
+}
+
+/* ── 5. Teljes folyamat egy valódi képpel ───────── */
+document.getElementById('file').addEventListener('change', async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  head('Teljes folyamat');
+  info('fájl: ' + file.name);
+  info('típus: ' + (file.type || '(üres)') + ', méret: ' + (file.size / 1e6).toFixed(2) + ' MB');
+
+  let url = null;
+  try {
+    url = URL.createObjectURL(file);
+    const img = new Image();
+    img.src = url;
+
+    try {
+      await img.decode();
+      ok('dekódolás sikerült');
+    } catch (error) {
+      bad('img.decode() elbukott: ' + error.name + ' — ' + error.message);
+      info('  próbálom onload eseménnyel is…');
+      await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('onerror')); });
+      ok('  onload viszont lefutott');
+    }
+
+    info('méret: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px');
+    if (!img.naturalWidth) { bad('a kép szélessége 0 — itt áll meg a feldolgozás'); return; }
+
+    const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    ok('fotó a vászonra rajzolva — ' + w + ' × ' + h);
+
+    const leak = new Image();
+    leak.src = 'leaks/L0.jpg';
+    try {
+      await leak.decode();
+      ok('leak betöltve — ' + leak.naturalWidth + ' × ' + leak.naturalHeight);
+    } catch (error) {
+      bad('leaks/L0.jpg nem tölthető be: ' + error.message);
+      return;
+    }
+
+    const layer = document.createElement('canvas');
+    layer.width = w; layer.height = h;
+    const lx = layer.getContext('2d');
+    lx.fillStyle = '#000'; lx.fillRect(0, 0, w, h);
+    lx.drawImage(leak, 0, 0, w, h);
+    lx.globalCompositeOperation = 'multiply';
+    lx.fillStyle = 'rgb(217,217,217)';
+    lx.fillRect(0, 0, w, h);
+    lx.globalCompositeOperation = 'source-over';
+
+    const ctx = canvas.getContext('2d');
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(layer, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ok('leak ráblendelve');
+
+    const blob = await new Promise((res, rej) => {
+      try { canvas.toBlob((b) => (b ? res(b) : rej(new Error('null blob'))), 'image/jpeg', 0.92); }
+      catch (e) { rej(e); }
+    });
+    ok('JPEG kész — ' + (blob.size / 1e6).toFixed(2) + ' MB');
+
+    const outURL = URL.createObjectURL(blob);
+    const out = document.getElementById('out');
+    out.onload = () => ok('az eredmény megjelenítve — a folyamat végig működik');
+    out.onerror = () => bad('a kész JPEG nem jeleníthető meg');
+    out.src = outURL;
+    out.style.display = 'block';
+
+  } catch (error) {
+    bad('megállt: ' + error.name + ' — ' + error.message);
+  } finally {
+    if (url) URL.revokeObjectURL(url);
+  }
+});
+
+/* ── Gombok ─────────────────────────────────────── */
+document.getElementById('clearBtn').addEventListener('click', async () => {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+    }
+    for (const name of await caches.keys()) await caches.delete(name);
+    alert('Törölve. Most nyisd meg újra a főoldalt.');
+  } catch (error) {
+    alert('Nem sikerült: ' + error.message);
+  }
+});
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(lines.join('\n')); alert('Napló a vágólapon.'); }
+  catch (e) { alert('Jelöld ki és másold kézzel.'); }
+});
+
+(async function run() {
+  lines = [];
+  await checkEnvironment();
+  await checkServiceWorker();
+  await checkFiles();
+  await checkCanvas();
+  head('Kész');
+  info('Most válassz egy képet a teljes folyamat teszteléséhez.');
+})();
+</script>
+</body>
+</html>

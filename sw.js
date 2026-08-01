@@ -1,6 +1,6 @@
-/* RetroLeaks service worker — offline gyorsítótár */
+/* RetroLeaks service worker — offline cache */
 
-const VERSION = 'retroleaks-v2';
+const VERSION = 'retroleaks-v3';
 
 const SHELL = [
   './',
@@ -21,7 +21,7 @@ const PRECACHE = SHELL.concat(LEAKS);
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(VERSION).then(async (cache) => {
-      // Egyesével, hogy egy hiányzó fájl ne buktassa el az egész telepítést.
+      // One at a time, so a single missing file cannot fail the whole install.
       await Promise.all(
         PRECACHE.map((url) =>
           cache.add(new Request(url, { cache: 'reload' })).catch(() => {})

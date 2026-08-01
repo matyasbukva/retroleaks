@@ -1,145 +1,139 @@
 # RetroLeaks
 
-Batch light leak feldolgozó iPhone-ra, telepíthető webappként (PWA). A képek
-soha nem hagyják el a telefont: a feldolgozás teljes egészében a böngészőben,
-`canvas`-on fut.
+A batch light leak tool for analogue film looks, installable on iPhone as a
+web app. Photos never leave the device: everything is composited in the
+browser on a `canvas`.
 
 ---
 
-## 1. Közzététel GitHub Pages-en
+## 1. Publishing on GitHub Pages
 
-A PWA-hoz HTTPS kell — enélkül nincs se offline mód, se megosztás a Fotókba.
-A GitHub Pages ingyen ad HTTPS-t.
+A PWA needs HTTPS. Without it there is no offline mode and no saving to
+Photos. GitHub Pages provides HTTPS for free.
 
-1. Hozz létre egy **publikus** repót, például `retroleaks` néven.
-2. Töltsd fel **ennek a mappának a tartalmát** a repó gyökerébe. Fontos: az
-   `index.html` közvetlenül a gyökérben legyen, ne egy almappában.
-3. A repóban: **Settings → Pages**
+1. Create a **public** repository, for example `retroleaks`.
+2. Upload **the contents of this folder** to the repository root. The
+   `index.html` must sit directly in the root, not inside a subfolder.
+3. In the repository: **Settings → Pages**
    - Source: `Deploy from a branch`
-   - Branch: `main`, mappa: `/ (root)`
-   - Save
-4. Egy-két perc múlva él a cím:
-   `https://<felhasználóneved>.github.io/retroleaks/`
+   - Branch: `main`, folder: `/ (root)`
+4. After a minute or two the address goes live:
+   `https://<your-username>.github.io/retroleaks/`
 
-Parancssorból:
+From the command line:
 
 ```bash
 git init
 git add .
 git commit -m "RetroLeaks PWA"
 git branch -M main
-git remote add origin https://github.com/<felhasználóneved>/retroleaks.git
+git remote add origin https://github.com/<your-username>/retroleaks.git
 git push -u origin main
 ```
 
-## 1/b. Kipróbálás számítógépen
+**If you upload through the browser, unzip the archive first.** Dragging files
+out of the Windows zip preview skips subfolders, and the `leaks` and `icons`
+folders never arrive. The repository listing should show both.
 
-**Duplakattintással NEM működik.** A felület bejön, de a feldolgozás elszáll
-„tainted canvas" hibával: `file://` alatt a böngésző minden helyi fájlt külön
-eredetnek tekint, így a leak ráégetése után a vásznat nem engedi exportálni.
+## 2. Trying it on a computer
 
-Indíts helyi szervert a mappában:
+**Double-clicking `index.html` does not work.** The interface loads, but
+processing fails with a tainted canvas error: under `file://` the browser
+treats every local file as a separate origin, so once a leak is drawn onto the
+canvas it refuses to export it.
+
+Run a local server in this folder instead:
 
 ```
 python -m http.server 8000
 ```
 
-majd nyisd meg: `http://localhost:8000`
+then open `http://localhost:8000`.
 
-## 2. Telepítés iPhone-ra
+## 3. Installing on iPhone
 
-1. Nyisd meg a címet **Safariban** (Chrome-ból nem megy a Kezdőképernyőhöz adás).
-2. Megosztás gomb → **Hozzáadás a Kezdőképernyőhöz**.
-3. Innentől saját ikonnal, teljes képernyőn, böngészősáv nélkül indul, és
-   offline is működik.
+1. Open the address in **Safari** (Add to Home Screen is Safari-only).
+2. Share button → **Add to Home Screen**.
+3. It now launches with its own icon, full screen, and works offline.
 
-Az első megnyitáskor letölti a 46 light leaket (kb. 3,4 MB), utána már
-gyorsítótárból dolgozik.
+The first visit downloads the 46 light leaks, about 3.4 MB. After that it runs
+from cache.
 
-## 3. Használat
+## 4. Using it
 
-1. **Képek kiválasztása** — több kép is jelölhető a Fotókból.
-2. **Előnézet** — az első képen azonnal látod a hatást. Az intenzitás csúszka
-   élőben frissíti; a *Másik leak* gomb új leaket és új irányt sorsol.
-3. **Beállítások**
-   - *Gyakoriság* — hány kép kap leaket. 100%-nál mindegyik.
-   - *Intenzitás* — a fénycsík ereje.
-   - *Véletlen irány és tükrözés* — 8-féle állás (0/90/180/270°, tükrözve is).
-   - *Hosszabbik oldal* — a kimenet felbontásának plafonja.
-4. **Feldolgozás indítása** — a kész képek kontaktmásolatként jelennek meg.
-5. **Mentés a Fotókba** — a megosztás-lapon válaszd a **Képek mentése**
-   lehetőséget.
+1. **Choose photos** — select as many as you like.
+2. **Pick a leak** from the filmstrip. `RND` gives every photo a different one.
+3. **Hold the preview** to see the original underneath.
+4. **Intensity** sets how strong the streak is. **Orientation** decides whether
+   each leak is rotated and flipped at random. **Coverage** appears once you
+   have more than one photo, and sets how many of them get a leak at all.
+5. **Apply**, then **Save to Photos**.
 
-### A mentésről
+### About saving
 
-iOS-en a webapp nem tud magától a Fotókba írni, ezért a megosztás-lapon megy
-keresztül. Két dolgot érdemes tudni:
+On iOS a web app cannot write to Photos directly, so it goes through the share
+sheet. Two things worth knowing:
 
-- A **Képek mentése** eltűnik a lapról, ha egyszerre túl sok fájlt küldünk.
-  Ezért megy csomagokban, alapból ötösével. Ha nem látod a lehetőséget, vedd
-  lejjebb a csomagméretet.
-- Egyetlen képet úgy mentesz, hogy **rákoppintasz a kockájára** a
-  kontaktmásolaton. A hosszú nyomás itt nem jó: az csak a kis bélyegképet
-  mentené, nem a teljes felbontású változatot.
+- **Save Images** disappears from the sheet when a share carries too many
+  files, so photos go five at a time.
+- To save one photo on its own, **tap its frame** on the contact sheet. Long
+  pressing is the wrong move there: it would only save the small thumbnail.
 
-## 4. Hogyan működik
+## 5. How it works
 
-A light leak képek háttere fekete. A **screen** blendnél a fekete semleges
-(nem sötétít), a világos részek pedig ráfutnak a fotóra — pontosan ez a
-film-burn hatás:
+The leak images have black backgrounds. Under a **screen** blend black is
+neutral and the bright areas carry over — which is exactly the film burn
+effect:
 
 ```
-eredmény = 255 − (255 − fotó) × (255 − leak) / 255
+result = 255 − (255 − photo) × (255 − leak) / 255
 ```
 
-Az intenzitás nem átlátszóságot állít, hanem a leak RGB értékeit szorozza. Így
-a fekete fekete marad, csak a fénycsík halványodik — ez jobban hasonlít arra,
-mintha kevesebb fény szivárgott volna be.
+Intensity does not change opacity; it scales the leak's RGB values. Black stays
+black and only the streak dims, which reads more like less light got in.
 
-A `leaks/params.json` az eredeti app paramétereit tartalmazza: melyik leak
-`STRETCH` (pontosan kitölti a képet, torzulhat) és melyik `FILL` (arányosan
-befedi, a széle levágódik), utóbbinál igazítással együtt. A 46-ból három
-kivétel van: `L1` = FILL/MC, `L5` = FILL/BL, `L33` = FILL/TR.
+`leaks/params.json` holds the parameters from the original app: which leaks are
+`STRETCH` (filling the frame exactly, distorting if needed) and which are
+`FILL` (covering proportionally, cropping the edges), with alignment for the
+latter. Three of the 46 are exceptions: `L1` = FILL/MC, `L5` = FILL/BL,
+`L33` = FILL/TR.
 
-## 4/b. Támogatott formátumok
+## 6. Supported formats
 
-Biztosan működik mindenhol: **JPEG, PNG, WebP, GIF, BMP**.
+Reliable everywhere: **JPEG, PNG, WebP, GIF, BMP**.
 
-A **HEIC** iPhone-on Safariban gond nélkül megy, mert a rendszer dekódolja.
-Windowson viszont a Chrome és az Edge nem tudja megnyitni — ahogy a **RAW**
-fájlokat sem (`.RW2`, `.DNG`, `.CR3`, `.NEF`, `.ARW` és társaik), és a TIFF-et
-sem.
+**HEIC** works in Safari on iPhone, because the system decodes it. Chrome and
+Edge on Windows cannot open it, and neither handles **raw** files (`.RW2`,
+`.DNG`, `.CR3`, `.NEF`, `.ARW` and the rest) or TIFF.
 
-Az app kiválasztáskor formátumonként letesztel egy fájlt, és ami ebben a
-böngészőben nem nyitható meg, azt kiszűri, megnevezve a formátumot. Tehát a
-Lumix RAW-jaidat előbb JPEG-be kell exportálnod — a light leak amúgy is a
-végső, kidolgozott képre való, nem a nyersanyagra.
+The app tests one file per format when you make a selection, and filters out
+whatever this browser cannot open, naming the format. Export raw files to JPEG
+first — a light leak belongs on a finished photograph anyway, not on a negative.
 
-## 5. Korlátok
+## 7. Limits
 
-- **Vászonméret.** A Safari kb. 16,7 megapixelnél elvágja a vásznat, és üres
-  képet ad. Ezért van felső határ a hosszabbik oldalra; az alapértelmezett
-  4096 px bőven elég egy 12 MP-es fotóhoz. 48 MP-es képeknél a program
-  automatikusan lekicsinyít.
-- **Memória.** Kb. 40 képnél többet egyszerre kockázatos betölteni, mert a
-  Safari újratöltheti a lapot. Az app figyelmeztet, ha átléped.
-- **Metaadatok.** A kimenet új JPEG, tehát nem viszi tovább az eredeti EXIF-et
-  (dátum, GPS, objektívadatok). Az orientáció viszont helyesen belesül a képbe.
+- **Canvas size.** Safari clips the canvas at roughly 16.7 megapixels and
+  returns a blank image. There is a ceiling on the longest edge for that
+  reason; Auto suits a 12 MP photo, and 48 MP files are scaled down.
+- **Memory.** More than about 40 photos at once risks Safari reloading the
+  page. The app warns when you cross that.
+- **Metadata.** The output is a new JPEG, so the original EXIF (date, GPS, lens
+  data) is not carried over. Orientation is baked into the pixels correctly.
 
-## 6. Fájlok
+## 8. Files
 
 ```
-index.html              felület
-styles.css              stílus
-app.js                  feldolgozás, előnézet, batch, megosztás
-sw.js                   service worker (offline gyorsítótár)
-manifest.webmanifest    PWA-leíró
-icons/                  ikonok
-leaks/L0.jpg … L45.jpg  a light leak készlet (1280 px, JPEG q85)
-leaks/params.json       leakenkénti resize + igazítás (az app.js-ben is
-                        benne van beépítve, hogy fájlból megnyitva is menjen)
+index.html              interface
+styles.css              styles
+app.js                  compositing, preview, batch, sharing
+sw.js                   service worker (offline cache)
+manifest.webmanifest    PWA descriptor
+diag.html               standalone diagnostics page
+icons/                  app icons
+leaks/L0.jpg … L45.jpg  the light leak set (1280 px, JPEG q85)
+leaks/params.json       resize + alignment per leak (also compiled into
+                        app.js, so the app runs from a file too)
 ```
 
-Ha új leaket teszel a `leaks/` mappába, vedd fel a `params.json`-be is, és
-emeld a `sw.js` `VERSION` értékét meg a benne lévő darabszámot, hogy a
-gyorsítótár frissüljön.
+Adding a leak means dropping it into `leaks/`, listing it in `params.json`,
+and raising both `VERSION` and the leak count in `sw.js` so the cache refreshes.

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>RetroLeaks</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="description" content="Batch light leak feldolgozó analóg filmhatáshoz.">
-<meta name="theme-color" content="#1c1c1e">
+<meta name="description" content="Batch light leak tool for analogue film looks. Everything runs on your device.">
+<meta name="theme-color" content="#26262a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,125 +17,110 @@
 </head>
 <body>
 
-<header class="masthead">
-  <div class="wordmark">Retro<span>leaks</span></div>
-  <div class="counter">
-    <span class="counter-num" id="counterNum">00</span>
-    <span class="counter-unit">kép</span>
+<header class="bar">
+  <div class="mark">Retro<span>leaks</span></div>
+  <div class="load" id="load" hidden>
+    <span class="load-num" id="loadNum">0</span>
+    <span class="load-unit" id="loadUnit">photos</span>
   </div>
 </header>
 
-<main>
+<p class="alert" id="alert" hidden></p>
 
-  <!-- FORRÁS -->
-  <section class="panel">
-    <h2 class="eyebrow">Forrás</h2>
+<div class="stage" id="stage">
 
-    <label class="picker" for="picker">
-      <span class="picker-label">Képek kiválasztása</span>
-      <span class="picker-hint">JPEG · PNG · HEIC</span>
-    </label>
-    <input type="file" id="picker"
-           accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/heic,image/heif"
-           multiple>
+  <label class="empty" for="picker" id="empty">
+    <span class="empty-title">Choose photos</span>
+    <span class="empty-sub">JPEG · PNG · HEIC</span>
+  </label>
 
-    <p class="meta" id="sourceMeta">Még nincs kiválasztott kép.</p>
-    <p class="warn" id="sourceWarn" hidden></p>
-    <p class="error" id="appError" hidden></p>
-  </section>
+  <div class="hero" id="hero" hidden>
+    <img id="heroImg" alt="Preview of the first photo with the current leak"
+         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+    <div class="hero-busy" id="heroBusy" hidden></div>
+    <span class="stamp" id="stamp" hidden>Original</span>
+    <span class="hero-hint" id="heroHint">Hold to compare</span>
+  </div>
 
-  <!-- ELŐNÉZET -->
-  <section class="panel" id="previewPanel" hidden>
-    <div class="panel-head">
-      <h2 class="eyebrow">Előnézet</h2>
-      <button class="ghost" id="rerollBtn" type="button">Másik leak</button>
-    </div>
-
-    <div class="preview-frame">
-      <img id="previewImg" alt="Előnézet az első képről a jelenlegi beállításokkal">
-      <div class="preview-busy" id="previewBusy" hidden></div>
-    </div>
-    <p class="meta" id="previewMeta"></p>
-  </section>
-
-  <!-- BEÁLLÍTÁSOK -->
-  <section class="panel">
-    <h2 class="eyebrow">Beállítások</h2>
-
-    <div class="control">
-      <div class="control-head">
-        <label for="frequency">Gyakoriság</label>
-        <output id="frequencyOut">100%</output>
-      </div>
-      <input type="range" id="frequency" min="0" max="100" step="5" value="100">
-      <p class="hint">Hány kép kap light leaket. 100%-nál mindegyik.</p>
-    </div>
-
-    <div class="control">
-      <div class="control-head">
-        <label for="intensity">Intenzitás</label>
-        <output id="intensityOut">85%</output>
-      </div>
-      <input type="range" id="intensity" min="10" max="100" step="5" value="85">
-      <p class="hint">A fénycsík ereje. A leak fekete háttere sosem sötétít.</p>
-    </div>
-
-    <div class="row">
-      <label class="switch" for="orientation">
-        <input type="checkbox" id="orientation" checked>
-        <span class="switch-track"><span class="switch-knob"></span></span>
-        <span class="switch-text">Véletlen irány és tükrözés</span>
-      </label>
-    </div>
-
-    <div class="control">
-      <div class="control-head">
-        <label for="maxSide">Hosszabbik oldal</label>
-        <output id="maxSideOut">4096 px</output>
-      </div>
-      <input type="range" id="maxSide" min="1536" max="4608" step="512" value="4096">
-      <p class="hint">A Safari vászonmérete korlátos. 4096 px fölött nagy képeknél üres lehet az eredmény.</p>
-    </div>
-  </section>
-
-  <!-- FUTTATÁS -->
-  <section class="panel">
-    <h2 class="eyebrow">Feldolgozás</h2>
-    <button class="primary" id="runBtn" type="button" disabled>Feldolgozás indítása</button>
-
-    <div class="progress" id="progress" hidden>
-      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
-      <p class="meta" id="progressMeta"></p>
-    </div>
-  </section>
-
-  <!-- EREDMÉNY -->
-  <section class="panel" id="resultPanel" hidden>
-    <div class="panel-head">
-      <h2 class="eyebrow">Kontaktmásolat</h2>
-      <span class="tally" id="tally"></span>
-    </div>
-
+  <div class="sheet-wrap" id="sheetWrap" hidden>
     <div class="sheet" id="sheet"></div>
+  </div>
 
-    <button class="primary" id="saveBtn" type="button">Mentés a Fotókba</button>
-    <p class="meta" id="saveMeta"></p>
+</div>
 
-    <div class="control control-tight">
-      <div class="control-head">
-        <label for="chunk">Csomagméret</label>
-        <output id="chunkOut">5 kép</output>
-      </div>
-      <input type="range" id="chunk" min="1" max="10" step="1" value="5">
-      <p class="hint">A megosztás-lapról a „Képek mentése” eltűnik, ha egyszerre túl sok fájlt küldünk. Ha nem látod, vegyél kisebb csomagot.</p>
+<input type="file" id="picker"
+       accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/heic,image/heif"
+       multiple>
+
+<main id="controls" hidden>
+
+  <section class="block">
+    <div class="block-head">
+      <h2 class="label">Leak</h2>
+      <span class="value" id="leakName">Random</span>
+    </div>
+    <div class="strip" id="strip" role="listbox" aria-label="Light leak"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2 class="label" id="intensityLabel">Intensity</h2>
+      <span class="value" id="intensityValue">85</span>
+    </div>
+    <input type="range" id="intensity" min="10" max="100" step="5" value="85"
+           aria-labelledby="intensityLabel">
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2 class="label">Orientation</h2>
+    </div>
+    <div class="seg" id="orientSeg" role="radiogroup" aria-label="Orientation">
+      <button type="button" class="seg-btn is-on" data-orient="random" role="radio" aria-checked="true">Random</button>
+      <button type="button" class="seg-btn" data-orient="fixed" role="radio" aria-checked="false">As shot</button>
     </div>
   </section>
 
-  <footer class="colophon">
-    <p><span id="leakCount">46</span> light leak · screen blend · a feldolgozás a telefonon fut, semmi nem megy szerverre</p>
-  </footer>
+  <section class="block" id="coverageBlock" hidden>
+    <div class="block-head">
+      <h2 class="label" id="coverageLabel">Coverage</h2>
+      <span class="value" id="coverageValue">100</span>
+    </div>
+    <input type="range" id="coverage" min="0" max="100" step="5" value="100"
+           aria-labelledby="coverageLabel">
+    <p class="note" id="coverageNote">Every photo gets a leak.</p>
+  </section>
+
+  <details class="more">
+    <summary>Advanced</summary>
+
+    <div class="block-head">
+      <h2 class="label" id="sizeLabel">Longest edge</h2>
+      <span class="value" id="sizeValue">Auto</span>
+    </div>
+    <input type="range" id="size" min="0" max="4" step="1" value="0" aria-labelledby="sizeLabel">
+    <p class="note">Auto keeps as much detail as your browser can handle. Lower it only if
+      large photos come out blank.</p>
+
+    <button type="button" class="link" id="resetBtn">Reset settings</button>
+  </details>
+
+  <p class="colophon">
+    <span id="leakTotal">46</span> leaks · screen blend · nothing leaves your device
+  </p>
 
 </main>
+
+<div class="dock" id="dock" hidden>
+  <div class="dock-progress" id="dockProgress" hidden>
+    <div class="dock-track"><div class="dock-fill" id="dockFill"></div></div>
+    <span class="dock-status" id="dockStatus"></span>
+  </div>
+  <div class="dock-row">
+    <button type="button" class="minor" id="backBtn" hidden>Back</button>
+    <button type="button" class="major" id="actionBtn">Apply</button>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>RetroLeaks — diagnosztika</title>
+<title>RetroLeaks — diagnostics</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
   body {
@@ -30,18 +30,18 @@
 </head>
 <body>
 
-<h1>Diagnosztika</h1>
-<p class="sub">Ez az oldal nem használ service workert, mindig frissen fut.</p>
+<h1>Diagnostics</h1>
+<p class="sub">This page uses no service worker, so it always runs fresh.</p>
 
-<pre id="log">Indulás…</pre>
+<pre id="log">Starting…</pre>
 
-<button id="clearBtn" class="alt">Gyorsítótár és service worker törlése</button>
+<button id="clearBtn" class="alt">Clear cache and service worker</button>
 
-<p class="sub">Alább válassz egy képet — végigmegyek a teljes folyamaton lépésről lépésre:</p>
+<p class="sub">Pick an image below and I will walk the whole pipeline, step by step:</p>
 <input type="file" id="file" accept="image/*">
-<img id="out" alt="Teszt eredménye">
+<img id="out" alt="Test result">
 
-<button id="copyBtn" class="alt">Napló másolása</button>
+<button id="copyBtn" class="alt">Copy log</button>
 
 <script>
 const logEl = document.getElementById('log');
@@ -54,26 +54,26 @@ function say(text, cls) {
   logEl.innerHTML = lines.join('\n');
 }
 function ok(t)   { lines.push('OK    ' + t); render(); }
-function bad(t)  { lines.push('HIBA  ' + t); render(); }
+function bad(t)  { lines.push('FAIL  ' + t); render(); }
 function info(t) { lines.push('      ' + t); render(); }
 function head(t) { lines.push('', '── ' + t + ' ' + '─'.repeat(Math.max(0, 34 - t.length))); render(); }
 
 function render() {
   logEl.innerHTML = lines.map((l) => {
     if (l.startsWith('OK')) return '<span class="ok">' + l + '</span>';
-    if (l.startsWith('HIBA')) return '<span class="bad">' + l + '</span>';
+    if (l.startsWith('FAIL')) return '<span class="bad">' + l + '</span>';
     if (l.startsWith('──')) return '<span class="note">' + l + '</span>';
     return '<span class="note">' + l + '</span>';
   }).join('\n');
 }
 
-/* ── 1. Környezet ───────────────────────────────── */
+/* ── 1. Environment ───────────────────────────────── */
 async function checkEnvironment() {
-  head('Környezet');
-  info('cím: ' + location.href);
-  info('biztonságos kontextus: ' + (window.isSecureContext ? 'igen' : 'NEM'));
-  info('böngésző: ' + navigator.userAgent.slice(0, 110));
-  info('kezdőképernyőről indítva: ' + (navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'igen' : 'nem'));
+  head('Environment');
+  info('address: ' + location.href);
+  info('secure context: ' + (window.isSecureContext ? 'yes' : 'NO'));
+  info('browser: ' + navigator.userAgent.slice(0, 110));
+  info('launched from home screen: ' + (navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'yes' : 'no'));
 
   const canShareFiles = (() => {
     try {
@@ -81,92 +81,92 @@ async function checkEnvironment() {
       return Boolean(navigator.canShare && navigator.canShare({ files: [probe] }));
     } catch (e) { return false; }
   })();
-  info('tud fájlt megosztani: ' + (canShareFiles ? 'igen' : 'nem — Fotókba mentés csak iPhone Safariban'));
+  info('can share files: ' + (canShareFiles ? 'yes' : 'no — saving to Photos needs Safari on iPhone'));
 }
 
-/* ── 2. Service worker és gyorsítótár ───────────── */
+/* ── 2. Service worker and cache ───────────── */
 async function checkServiceWorker() {
   head('Service worker');
-  if (!('serviceWorker' in navigator)) { info('nem támogatott'); return; }
+  if (!('serviceWorker' in navigator)) { info('not supported'); return; }
 
   const regs = await navigator.serviceWorker.getRegistrations();
-  info('regisztrációk száma: ' + regs.length);
-  regs.forEach((r) => info('  hatókör: ' + r.scope));
+  info('registrations: ' + regs.length);
+  regs.forEach((r) => info('  scope: ' + r.scope));
 
   const names = await caches.keys();
-  info('gyorsítótárak: ' + (names.length ? names.join(', ') : 'nincs'));
+  info('caches: ' + (names.length ? names.join(', ') : 'none'));
 
   for (const name of names) {
     const cache = await caches.open(name);
     const keys = await cache.keys();
-    info('  ' + name + ': ' + keys.length + ' bejegyzés');
+    info('  ' + name + ': ' + keys.length + ' entries');
     const hasLeak = keys.some((k) => k.url.includes('/leaks/L'));
     if (name.includes('v1')) {
-      bad('  RÉGI (v1) gyorsítótár él — ez régi kódot szolgál ki. Töröld a gombbal.');
+      bad('  An OLD (v1) cache is live and will serve stale code. Clear it with the button.');
     }
-    info('  leak kép a gyorsítótárban: ' + (hasLeak ? 'van' : 'nincs'));
+    info('  leak image in cache: ' + (hasLeak ? 'yes' : 'no'));
   }
 }
 
-/* ── 3. Fájlok elérhetősége ─────────────────────── */
+/* ── 3. File availability ─────────────────────── */
 async function checkFiles() {
-  head('Fájlok a szerveren');
+  head('Files on the server');
   const targets = ['app.js', 'index.html', 'leaks/params.json', 'leaks/L0.jpg', 'leaks/L45.jpg', 'icons/icon-192.png'];
 
   for (const path of targets) {
     try {
-      // cache: 'reload' megkerüli a HTTP gyorsítótárat, de a service workert nem
+      // cache: 'reload' bypasses the HTTP cache, though not the service worker
       const response = await fetch(path, { cache: 'reload' });
       const size = (await response.blob()).size;
-      if (response.ok) ok(path + ' — ' + response.status + ', ' + size + ' bájt');
+      if (response.ok) ok(path + ' — ' + response.status + ', ' + size + ' bytes');
       else bad(path + ' — ' + response.status);
     } catch (error) {
       bad(path + ' — ' + error.message);
     }
   }
 
-  head('Melyik app.js fut valójában?');
+  head('Which app.js is actually running?');
   try {
     const text = await (await fetch('app.js', { cache: 'reload' })).text();
-    info('méret: ' + text.length + ' karakter');
-    info('beépített leak lista: ' + (text.includes('BUILTIN_LEAKS') ? 'VAN (új)' : 'nincs (RÉGI)'));
-    info('indulási önellenőrzés: ' + (text.includes('Indulási önellenőrzés') ? 'VAN (új)' : 'nincs (RÉGI)'));
+    info('size: ' + text.length + ' characters');
+    info('built-in leak list: ' + (text.includes('BUILTIN_LEAKS') ? 'present (new)' : 'missing (OLD)'));
+    info('startup self-check: ' + (text.includes('Startup check') ? 'present (new)' : 'missing (OLD)'));
   } catch (error) {
-    bad('app.js nem olvasható: ' + error.message);
+    bad('app.js unreadable: ' + error.message);
   }
 }
 
-/* ── 4. Vászon képességek ───────────────────────── */
+/* ── 4. Canvas capability ───────────────────────── */
 async function checkCanvas() {
-  head('Vászon');
+  head('Canvas');
   try {
     const canvas = document.createElement('canvas');
     canvas.width = 800; canvas.height = 600;
     const ctx = canvas.getContext('2d');
-    if (!ctx) { bad('nincs 2d kontextus'); return; }
+    if (!ctx) { bad('no 2d context'); return; }
 
     ctx.fillStyle = '#404040'; ctx.fillRect(0, 0, 800, 600);
     ctx.globalCompositeOperation = 'screen';
     const supported = ctx.globalCompositeOperation === 'screen';
     ctx.globalCompositeOperation = 'source-over';
-    info('screen blend: ' + (supported ? 'támogatott' : 'NEM támogatott'));
+    info('screen blend: ' + (supported ? 'supported' : 'NOT supported'));
 
     const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.9));
-    if (blob && blob.size > 0) ok('toBlob JPEG működik — ' + blob.size + ' bájt');
-    else bad('toBlob üres vagy null értéket adott');
+    if (blob && blob.size > 0) ok('toBlob JPEG works — ' + blob.size + ' bytes');
+    else bad('toBlob returned null or empty');
   } catch (error) {
-    bad('vászon hiba: ' + error.message);
+    bad('canvas error: ' + error.message);
   }
 }
 
-/* ── 5. Teljes folyamat egy valódi képpel ───────── */
+/* ── 5. Full pipeline with a real image ───────── */
 document.getElementById('file').addEventListener('change', async (event) => {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  head('Teljes folyamat');
-  info('fájl: ' + file.name);
-  info('típus: ' + (file.type || '(üres)') + ', méret: ' + (file.size / 1e6).toFixed(2) + ' MB');
+  head('Full pipeline');
+  info('file: ' + file.name);
+  info('type: ' + (file.type || '(empty)') + ', size: ' + (file.size / 1e6).toFixed(2) + ' MB');
 
   let url = null;
   try {
@@ -176,16 +176,16 @@ document.getElementById('file').addEventListener('change', async (event) => {
 
     try {
       await img.decode();
-      ok('dekódolás sikerült');
+      ok('decoded');
     } catch (error) {
-      bad('img.decode() elbukott: ' + error.name + ' — ' + error.message);
-      info('  próbálom onload eseménnyel is…');
+      bad('img.decode() failed: ' + error.name + ' — ' + error.message);
+      info('  trying the onload event instead…');
       await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('onerror')); });
-      ok('  onload viszont lefutott');
+      ok('  onload did fire');
     }
 
-    info('méret: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px');
-    if (!img.naturalWidth) { bad('a kép szélessége 0 — itt áll meg a feldolgozás'); return; }
+    info('size: ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px');
+    if (!img.naturalWidth) { bad('image width is 0 — this is where processing stops'); return; }
 
     const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
     const w = Math.round(img.naturalWidth * scale);
@@ -194,15 +194,15 @@ document.getElementById('file').addEventListener('change', async (event) => {
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-    ok('fotó a vászonra rajzolva — ' + w + ' × ' + h);
+    ok('photo drawn to canvas — ' + w + ' × ' + h);
 
     const leak = new Image();
     leak.src = 'leaks/L0.jpg';
     try {
       await leak.decode();
-      ok('leak betöltve — ' + leak.naturalWidth + ' × ' + leak.naturalHeight);
+      ok('leak loaded — ' + leak.naturalWidth + ' × ' + leak.naturalHeight);
     } catch (error) {
-      bad('leaks/L0.jpg nem tölthető be: ' + error.message);
+      bad('leaks/L0.jpg will not load: ' + error.message);
       return;
     }
 
@@ -220,29 +220,29 @@ document.getElementById('file').addEventListener('change', async (event) => {
     ctx.globalCompositeOperation = 'screen';
     ctx.drawImage(layer, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
-    ok('leak ráblendelve');
+    ok('leak blended on');
 
     const blob = await new Promise((res, rej) => {
       try { canvas.toBlob((b) => (b ? res(b) : rej(new Error('null blob'))), 'image/jpeg', 0.92); }
       catch (e) { rej(e); }
     });
-    ok('JPEG kész — ' + (blob.size / 1e6).toFixed(2) + ' MB');
+    ok('JPEG encoded — ' + (blob.size / 1e6).toFixed(2) + ' MB');
 
     const outURL = URL.createObjectURL(blob);
     const out = document.getElementById('out');
-    out.onload = () => ok('az eredmény megjelenítve — a folyamat végig működik');
-    out.onerror = () => bad('a kész JPEG nem jeleníthető meg');
+    out.onload = () => ok('result displayed — the whole pipeline works');
+    out.onerror = () => bad('the finished JPEG will not display');
     out.src = outURL;
     out.style.display = 'block';
 
   } catch (error) {
-    bad('megállt: ' + error.name + ' — ' + error.message);
+    bad('stopped: ' + error.name + ' — ' + error.message);
   } finally {
     if (url) URL.revokeObjectURL(url);
   }
 });
 
-/* ── Gombok ─────────────────────────────────────── */
+/* ── Buttons ─────────────────────────────────────── */
 document.getElementById('clearBtn').addEventListener('click', async () => {
   try {
     if ('serviceWorker' in navigator) {
@@ -250,15 +250,15 @@ document.getElementById('clearBtn').addEventListener('click', async () => {
       for (const r of regs) await r.unregister();
     }
     for (const name of await caches.keys()) await caches.delete(name);
-    alert('Törölve. Most nyisd meg újra a főoldalt.');
+    alert('Cleared. Now reopen the main page.');
   } catch (error) {
-    alert('Nem sikerült: ' + error.message);
+    alert('Failed: ' + error.message);
   }
 });
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(lines.join('\n')); alert('Napló a vágólapon.'); }
-  catch (e) { alert('Jelöld ki és másold kézzel.'); }
+  try { await navigator.clipboard.writeText(lines.join('\n')); alert('Log copied.'); }
+  catch (e) { alert('Select the log and copy it manually.'); }
 });
 
 (async function run() {
@@ -267,8 +267,8 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
   await checkServiceWorker();
   await checkFiles();
   await checkCanvas();
-  head('Kész');
-  info('Most válassz egy képet a teljes folyamat teszteléséhez.');
+  head('Done');
+  info('Now pick an image to test the full pipeline.');
 })();
 </script>
 </body>

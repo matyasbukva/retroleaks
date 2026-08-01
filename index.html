@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>RetroLeaks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Batch light leak feldolgozó analóg filmhatáshoz.">
+<meta name="theme-color" content="#1c1c1e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RetroLeaks">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wordmark">Retro<span>leaks</span></div>
+  <div class="counter">
+    <span class="counter-num" id="counterNum">00</span>
+    <span class="counter-unit">kép</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- FORRÁS -->
+  <section class="panel">
+    <h2 class="eyebrow">Forrás</h2>
+
+    <label class="picker" for="picker">
+      <span class="picker-label">Képek kiválasztása</span>
+      <span class="picker-hint">a Fotókból vagy a Fájlokból</span>
+    </label>
+    <input type="file" id="picker" accept="image/*" multiple>
+
+    <p class="meta" id="sourceMeta">Még nincs kiválasztott kép.</p>
+    <p class="warn" id="sourceWarn" hidden></p>
+    <p class="error" id="appError" hidden></p>
+  </section>
+
+  <!-- ELŐNÉZET -->
+  <section class="panel" id="previewPanel" hidden>
+    <div class="panel-head">
+      <h2 class="eyebrow">Előnézet</h2>
+      <button class="ghost" id="rerollBtn" type="button">Másik leak</button>
+    </div>
+
+    <div class="preview-frame">
+      <img id="previewImg" alt="Előnézet az első képről a jelenlegi beállításokkal">
+      <div class="preview-busy" id="previewBusy" hidden></div>
+    </div>
+    <p class="meta" id="previewMeta"></p>
+  </section>
+
+  <!-- BEÁLLÍTÁSOK -->
+  <section class="panel">
+    <h2 class="eyebrow">Beállítások</h2>
+
+    <div class="control">
+      <div class="control-head">
+        <label for="frequency">Gyakoriság</label>
+        <output id="frequencyOut">100%</output>
+      </div>
+      <input type="range" id="frequency" min="0" max="100" step="5" value="100">
+      <p class="hint">Hány kép kap light leaket. 100%-nál mindegyik.</p>
+    </div>
+
+    <div class="control">
+      <div class="control-head">
+        <label for="intensity">Intenzitás</label>
+        <output id="intensityOut">85%</output>
+      </div>
+      <input type="range" id="intensity" min="10" max="100" step="5" value="85">
+      <p class="hint">A fénycsík ereje. A leak fekete háttere sosem sötétít.</p>
+    </div>
+
+    <div class="row">
+      <label class="switch" for="orientation">
+        <input type="checkbox" id="orientation" checked>
+        <span class="switch-track"><span class="switch-knob"></span></span>
+        <span class="switch-text">Véletlen irány és tükrözés</span>
+      </label>
+    </div>
+
+    <div class="control">
+      <div class="control-head">
+        <label for="maxSide">Hosszabbik oldal</label>
+        <output id="maxSideOut">4096 px</output>
+      </div>
+      <input type="range" id="maxSide" min="1536" max="4608" step="512" value="4096">
+      <p class="hint">A Safari vászonmérete korlátos. 4096 px fölött nagy képeknél üres lehet az eredmény.</p>
+    </div>
+  </section>
+
+  <!-- FUTTATÁS -->
+  <section class="panel">
+    <h2 class="eyebrow">Feldolgozás</h2>
+    <button class="primary" id="runBtn" type="button" disabled>Feldolgozás indítása</button>
+
+    <div class="progress" id="progress" hidden>
+      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      <p class="meta" id="progressMeta"></p>
+    </div>
+  </section>
+
+  <!-- EREDMÉNY -->
+  <section class="panel" id="resultPanel" hidden>
+    <div class="panel-head">
+      <h2 class="eyebrow">Kontaktmásolat</h2>
+      <span class="tally" id="tally"></span>
+    </div>
+
+    <div class="sheet" id="sheet"></div>
+
+    <button class="primary" id="saveBtn" type="button">Mentés a Fotókba</button>
+    <p class="meta" id="saveMeta"></p>
+
+    <div class="control control-tight">
+      <div class="control-head">
+        <label for="chunk">Csomagméret</label>
+        <output id="chunkOut">5 kép</output>
+      </div>
+      <input type="range" id="chunk" min="1" max="10" step="1" value="5">
+      <p class="hint">A megosztás-lapról a „Képek mentése” eltűnik, ha egyszerre túl sok fájlt küldünk. Ha nem látod, vegyél kisebb csomagot.</p>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <p><span id="leakCount">46</span> light leak · screen blend · a feldolgozás a telefonon fut, semmi nem megy szerverre</p>
+  </footer>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
